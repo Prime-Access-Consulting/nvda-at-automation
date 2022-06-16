@@ -1,7 +1,7 @@
 package server
 
 import (
-	"AT/client"
+	"AT/GolangServer/client"
 	"context"
 	"fmt"
 	"golang.org/x/time/rate"

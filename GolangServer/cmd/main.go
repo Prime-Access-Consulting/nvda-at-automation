@@ -1,8 +1,8 @@
 package main
 
 import (
-	atClient "AT/client"
-	atServer "AT/server"
+	atClient "AT/GolangServer/client"
+	atServer "AT/GolangServer/server"
 	"fmt"
 	"github.com/joho/godotenv"
 	"log"
