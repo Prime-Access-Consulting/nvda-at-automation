@@ -39,14 +39,9 @@ type CommandErrorResponse struct {
 
 func (c NVDAClient) New(host string) *NVDAClient {
 	client := new(NVDAClient)
-
 	client.host = host
-
 	client.http = &http.Client{
-		Transport:     nil,
-		CheckRedirect: nil,
-		Jar:           nil,
-		Timeout:       time.Second * 5,
+		Timeout: time.Second * 5,
 	}
 
 	info, err := client.getInfo()

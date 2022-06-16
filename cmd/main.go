@@ -2,6 +2,7 @@ package main
 
 import (
 	atClient "AT/client"
+	atServer "AT/server"
 	"fmt"
 	"github.com/joho/godotenv"
 	"log"
@@ -45,28 +46,30 @@ func getHost() string {
 func main() {
 	loadEnv()
 
-	//serverPort, _ := strconv.Atoi(os.Getenv("HOST_WEBSOCKET_PORT"))
-
-	//server := atServer.AutomationServer{}.New(serverPort)
+	serverPort, _ := strconv.Atoi(os.Getenv("HOST_WEBSOCKET_PORT"))
 
 	log.Printf("Connecting...\n")
 	nvda := atClient.NVDAClient{}.New(getHost())
 
-	log.Printf("Starting client session...\n")
+	server := atServer.AutomationServer{}.New(serverPort, nvda)
 
-	sessionId, err := nvda.StartSession()
+	err := server.Start()
 
 	if err != nil {
-		log.Fatal(err)
+		log.Fatalf("Error starting websocket server: %v", err)
 	}
 
-	log.Printf("Established client session %s", *sessionId)
-
-	//err := server.StartSession(nvda)
+	//log.Printf("Starting client session...\n")
+	//
+	//sessionId, err := nvda.StartSession()
 	//
 	//if err != nil {
 	//	log.Fatal(err)
 	//}
 	//
-	//log.Printf("Started server on port %d", serverPort)
+	//log.Printf("Established client session %s", *sessionId)
+
+	if err != nil {
+		log.Fatal(err)
+	}
 }
