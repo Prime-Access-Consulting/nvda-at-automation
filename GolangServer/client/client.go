@@ -7,13 +7,16 @@ import (
 	"io"
 	"io/ioutil"
 	"log"
+	"net"
 	"net/http"
+	"os"
 	"time"
 )
 
 type NVDAClient struct {
-	host string
-	http *http.Client
+	host    string
+	handler AsyncEventHandler
+	http    *http.Client
 }
 
 type Command struct {
@@ -37,6 +40,8 @@ type CommandErrorResponse struct {
 	Error   string  `json:"error"`
 }
 
+type AsyncEventHandler func(e string)
+
 func (c NVDAClient) New(host string) *NVDAClient {
 	client := new(NVDAClient)
 	client.host = host
@@ -52,7 +57,62 @@ func (c NVDAClient) New(host string) *NVDAClient {
 
 	log.Printf("Connected to NVDA: %s\n", *info)
 
+	//client.stream()
+
 	return client
+}
+
+type event struct {
+	Event string `json:"event"`
+}
+
+type events []event
+
+func (c *NVDAClient) Stream() {
+	servAddr := "localhost:5432"
+	tcpAddr, err := net.ResolveTCPAddr("tcp", servAddr)
+	if err != nil {
+		log.Print("ResolveTCPAddr failed:", err.Error())
+		os.Exit(1)
+	}
+
+	log.Printf("Connected to %s", servAddr)
+
+	conn, err := net.DialTCP("tcp", nil, tcpAddr)
+	if err != nil {
+		log.Print("Dial failed:", err.Error())
+		os.Exit(1)
+	}
+
+	for {
+		reply := make([]byte, 128*1000)
+		var chunks []string
+		var chunk []byte
+
+		_, err := conn.Read(reply)
+		if err != nil {
+			//println("Read from server failed:", err.Error())
+		}
+
+		for _, r := range reply {
+			if int(r) == 30 {
+				chunks = append(chunks, string(chunk))
+				chunk = nil
+				continue
+			}
+
+			chunk = append(chunk, r)
+		}
+
+		for _, r := range chunks {
+			el, _ := json.Marshal(r)
+			c.handler(string(el))
+		}
+	}
+}
+
+func (c *NVDAClient) SetAsyncEventHandler(handler AsyncEventHandler) {
+	c.handler = handler
 }
 
 func (c *NVDAClient) getInfo() (*string, error) {

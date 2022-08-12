@@ -76,6 +76,14 @@ func (s *AutomationServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		InsecureSkipVerify: true,
 	})
 
+	var handler = func(event string) {
+		c.Write(r.Context(), websocket.MessageText, []byte(event))
+	}
+
+	s.nvda.SetAsyncEventHandler(handler)
+
+	s.nvda.Stream()
+
 	if err != nil {
 		log.Printf("%v", err)
 		return
