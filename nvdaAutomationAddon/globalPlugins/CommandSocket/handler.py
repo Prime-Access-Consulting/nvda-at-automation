@@ -1,20 +1,20 @@
-import datetime
 import platform
-import threading
-import time
 from http.server import BaseHTTPRequestHandler
 from http import HTTPStatus
 import json
 import uuid
 
 import versionInfo
-from synthDrivers.sapi5 import SynthDriver
 
 VERSION = "0.1"
 HOST = 'localhost'
 PORT = 8765
 
-_info = "NVDA Command Socket v%s on %s:%d, NVDA v%s" % (VERSION, HOST, PORT, versionInfo.version)
+_info = json.dumps({
+	'atName': 'NVDA',
+	'atVersion': versionInfo.version,
+	'platformName': platform.system().lower()
+}).encode('utf-8')
 
 
 class RequestHandler(BaseHTTPRequestHandler):
@@ -36,9 +36,12 @@ class RequestHandler(BaseHTTPRequestHandler):
 		self.end_headers()
 
 	def do_GET(self):
-		if not self.path or self.path == '/':
+		if not self.path or self.path == '/info':
 			self._set_headers('text/plain')
-			self.wfile.write(_info.encode('utf-8'))
+			self.wfile.write(_info)
+		elif self.path == '/settings':
+			self._set_headers('text/plain')
+			self.wfile.write(json.dumps(RequestHandler._get_settings()).encode('utf-8'))
 		else:
 			self._set_headers('text/plain', HTTPStatus.NOT_FOUND)
 			self.wfile.write(f'{self.path} 404 not found'.encode('utf-8'))
@@ -66,7 +69,7 @@ class RequestHandler(BaseHTTPRequestHandler):
 	def _parse_command(command):
 		commands = {
 			'session.new': RequestHandler._handle_create_session_command,
-			'settings.getSettings': RequestHandler._handle_get_settings_command
+			'nvda:settings.setSettings': RequestHandler._handle_set_settings_command,
 		}
 
 		if 'method' not in command or command['method'] not in commands:
@@ -94,24 +97,18 @@ class RequestHandler(BaseHTTPRequestHandler):
 		}
 
 	@staticmethod
-	def _handle_get_settings_command(command):
+	def _handle_set_settings_command(command):
+		# TODO parse settings like { general.loggingLevel: "TEST" }
+		# TODO how to do this while also hooking into NVDAs validation?
+
 		import config
 		c = config.conf
+		general = c.dict()['general']
+		general['loggingLevel'] = "TEST"
+		config.conf['general'] = general
+		return {}
 
-		return {
-			'general.language': c['general']['language'],
-			'general.saveConfigurationOnExit': c['general']['saveConfigurationOnExit'],
-			'general.askToExit': c['general']['askToExit'],
-			'general.playStartAndExitSounds': c['general']['playStartAndExitSounds'],
-			'general.loggingLevel': c['general']['loggingLevel'],
-			'general.showWelcomeDialogAtStartup': c['general']['showWelcomeDialogAtStartup'],
-
-			'speech.synth': c['speech']['synth'],
-			'speech.symbolLevel': c['speech']['symbolLevel'],
-			'speech.trustVoiceLanguage': c['speech']['trustVoiceLanguage'],
-			'speech.includeCLDR': c['speech']['includeCLDR'],
-			'speech.beepSpeechModePitch': c['speech']['beepSpeechModePitch'],
-			'speech.outputDevice': c['speech']['outputDevice'],
-			'speech.autoLanguageSwitching': c['speech']['autoLanguageSwitching'],
-			'speech.autoDialectSwitching': c['speech']['autoDialectSwitching'],
-		}
+	@staticmethod
+	def _get_settings():
+		import config
+		return config.conf.dict()
