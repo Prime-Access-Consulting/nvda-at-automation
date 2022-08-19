@@ -1,156 +1,157 @@
 package server
 
 import (
-	"AT/GolangServer/client"
-	"context"
-	"fmt"
-	"golang.org/x/time/rate"
-	"io"
+	"AT/GolangServer/AT"
+	"encoding/json"
+	"github.com/gorilla/websocket"
 	"log"
-	"net"
 	"net/http"
-	"nhooyr.io/websocket"
 	"os"
-	"os/signal"
-	"time"
 )
 
-type AutomationServer struct {
-	socket    *websocket.Conn
-	server    *http.Server
-	nvda      *client.NVDAClient
-	port      int
-	isStarted bool
-}
-
-func (s *AutomationServer) Start() error {
-	if s.isStarted {
-		return fmt.Errorf("server has already started")
+func (s *Server) serve(w http.ResponseWriter, r *http.Request) {
+	var upgrader = websocket.Upgrader{
+		CheckOrigin: func(r *http.Request) bool {
+			return true
+		},
 	}
 
-	l, err := net.Listen("tcp", fmt.Sprintf(":%d", s.port))
-	if err != nil {
-		return err
-	}
+	c, err := upgrader.Upgrade(w, r, nil)
 
-	log.Printf("listening on ws://%v", l.Addr())
-
-	errc := make(chan error, 1)
-	go func() {
-		errc <- s.server.Serve(l)
-	}()
-
-	sigs := make(chan os.Signal, 1)
-	signal.Notify(sigs, os.Interrupt)
-	select {
-	case err := <-errc:
-		log.Printf("failed to serve: %v", err)
-	case sig := <-sigs:
-		log.Printf("terminating: %v", sig)
-	}
-
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second*10)
-	defer cancel()
-
-	return s.server.Shutdown(ctx)
-}
-
-func (s AutomationServer) New(port int, nvdaClient *client.NVDAClient) *AutomationServer {
-	as := new(AutomationServer)
-
-	as.port = port
-	as.nvda = nvdaClient
-
-	as.server = &http.Server{
-		Handler:      as,
-		ReadTimeout:  time.Second * 10,
-		WriteTimeout: time.Second * 10,
-	}
-
-	return as
-}
-
-func (s *AutomationServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	c, err := websocket.Accept(w, r, &websocket.AcceptOptions{
-		Subprotocols:       []string{"aria-at-automation"},
-		InsecureSkipVerify: true,
-	})
-
-	var handler = func(event string) {
-		c.Write(r.Context(), websocket.MessageText, []byte(event))
-	}
-
-	s.nvda.SetAsyncEventHandler(handler)
-
-	s.nvda.Stream()
+	s.connection = c
 
 	if err != nil {
-		log.Printf("%v", err)
+		log.Print("upgrade:", err)
 		return
 	}
 
-	defer c.Close(websocket.StatusInternalError, "boink")
+	defer func(c *websocket.Conn) {
+		var err = c.Close()
+		if err != nil {
+			panic(err)
+		}
+	}(c)
 
-	//if c.Subprotocol() != "aria-at-automation" {
-	//	c.Close(websocket.StatusPolicyViolation, "client must speak the aria-at-automation subprotocol")
-	//	return
-	//}
-
-	l := rate.NewLimiter(rate.Every(time.Millisecond*100), 10)
 	for {
-		err = s.handleMessage(r.Context(), c, l)
-		if websocket.CloseStatus(err) == websocket.StatusNormalClosure {
-			return
+		mt, message, err := c.ReadMessage()
+
+		if mt != websocket.TextMessage {
+			log.Println("recv: [Binary], skipping")
+			break
 		}
 
 		if err != nil {
-			log.Fatalf("failed to handle message from %v: %v", r.RemoteAddr, err)
-			return
+			log.Println("read:", err)
+			break
+		}
+
+		log.Printf("recv: %s", message)
+
+		response := s.HandleMessage(message)
+
+		err = c.WriteMessage(websocket.TextMessage, response)
+		if err != nil {
+			log.Println("send:", err)
 		}
 	}
 }
 
-func (s *AutomationServer) handleMessage(ctx context.Context, c *websocket.Conn, l *rate.Limiter) error {
-	ctx, cancel := context.WithTimeout(ctx, time.Second*10)
-	defer cancel()
+func (s *Server) HandleMessage(message []byte) []byte {
+	var c = AT.AnyCommand{}
+	err := json.Unmarshal(message, &c)
 
-	err := l.Wait(ctx)
-	if err != nil {
-		return err
+	if err == nil {
+		return s.HandleAnyCommand(c, message)
 	}
 
-	typ, r, err := c.Reader(ctx)
-	if err != nil {
-		return err
-	}
+	return s.HandleUnknownCommand()
+}
 
-	msg, _ := io.ReadAll(r)
+func (s *Server) HandleAnyCommand(command AT.AnyCommand, message []byte) []byte {
+	log.Printf("Received command %s\n", command.Method)
 
-	log.Printf("Received: %s.", string(msg))
-
-	w, err := c.Writer(ctx, typ)
-	if err != nil {
-		return err
-	}
-
-	// TODO abstract into switching logic
-
-	if string(msg) == "startSession" {
-		id, err := s.nvda.StartSession()
-
-		if err != nil {
-			_, err = io.WriteString(w, fmt.Sprintf("Failed to start session: %v", err))
-		} else {
-			_, err = io.WriteString(w, fmt.Sprintf("Session \"%s\"", *id))
+	if command.Method == "session.new" {
+		var c = AT.SessionNewCommand{}
+		err := json.Unmarshal(message, &c)
+		if err == nil {
+			return s.HandleNewSessionCommand(c)
 		}
-
-	} else {
-		_, err = io.WriteString(w, fmt.Sprintf("Syntax Error: \"%s\"", msg))
 	}
+
+	if command.Method == "nvda:settings.getSettings" {
+		var c = AT.GetSettingsCommand{}
+		err := json.Unmarshal(message, &c)
+		if err == nil {
+			return s.HandleGetSettingsCommand()
+		}
+	}
+
+	return s.HandleUnknownCommand()
+}
+
+func (s *Server) HandleGetSettingsCommand() []byte {
+	var c = AT.GetSettingsResponse{}
+
+	for _, v := range *s.clients {
+		settings, err := v.GetSettings()
+		if err == nil {
+			c.Settings = *settings
+
+			response, err := json.Marshal(c)
+
+			if err != nil {
+				panic(err)
+			}
+
+			return response
+		} else {
+			panic(err)
+		}
+	}
+
+	return s.HandleUnknownCommand()
+}
+
+func (s *Server) HandleUnknownCommand() []byte {
+	var c = AT.ErrorResponse{
+		ID:      nil,
+		Error:   "unknown command",
+		Message: "",
+	}
+
+	response, err := json.Marshal(c)
 
 	if err != nil {
-		return fmt.Errorf("failed to io.WriteString: %w", err)
+		panic(err)
 	}
 
-	return w.Close()
+	return response
+}
+
+func (s *Server) HandleNewSessionCommand(command AT.SessionNewCommand) []byte {
+	//var id = uuid.New()
+	//*s.sessions{id.String()} = s.clients[]
+	return []byte("started new session")
+}
+
+func (s *Server) Start(clients *AT.Clients) {
+	log.Println("Starting websocket server")
+
+	s.clients = clients
+	s.sessions = new(AT.Sessions)
+
+	http.HandleFunc("/command", s.serve)
+	err := http.ListenAndServe(os.Getenv("WEBSOCKET_HOST"), nil)
+
+	if err != nil {
+		panic(err)
+	}
+
+	log.Printf("Started websocket on %s", os.Getenv("WEBSOCKET_HOST"))
+}
+
+type Server struct {
+	clients    *AT.Clients
+	connection *websocket.Conn
+	sessions   *AT.Sessions
 }
