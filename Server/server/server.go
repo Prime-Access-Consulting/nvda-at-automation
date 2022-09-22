@@ -159,6 +159,36 @@ func (s *Server) handleGetSettingsCommand(message []byte) []byte {
 	return r
 }
 
+func (s *Server) handleSetSettingsCommand(message []byte) []byte {
+	c := command.SetSettingsCommand{}
+	err := json.Unmarshal(message, &c)
+
+	if err != nil {
+		return handleUnknownCommand(nil)
+	}
+
+	if s.client == nil {
+		// no session available
+		return handleUnknownCommand(&c.ID)
+	}
+
+	res := response.SetSettingsResponse{ID: c.ID}
+
+	err = s.client.SetSettings(c.Params.Settings)
+
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	r, err := json.Marshal(res)
+
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	return r
+}
+
 func (s *Server) handleAnyCommand(c command.AnyCommand, message []byte) []byte {
 	log.Printf("Received command %s\n", c.Method)
 
@@ -168,6 +198,10 @@ func (s *Server) handleAnyCommand(c command.AnyCommand, message []byte) []byte {
 
 	if c.Method == command.GetSettingsCommandMethod {
 		return s.handleGetSettingsCommand(message)
+	}
+
+	if c.Method == command.SetSettingsCommandMethod {
+		return s.handleSetSettingsCommand(message)
 	}
 
 	return handleUnknownCommand(&c.ID)

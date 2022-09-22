@@ -36,6 +36,13 @@ type RetrievedSetting struct {
 	Value interface{} `json:"value"`
 }
 
+type SetSettingsResponse struct {
+	ID     string      `json:"id"`
+	Result EmptyResult `json:"result"`
+}
+
+type EmptyResult interface{}
+
 func ErrorResponseJSON(error string, message string, id *string) []byte {
 	c := ErrorResponse{
 		ID:      id,

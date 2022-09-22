@@ -3,6 +3,7 @@ package command
 const (
 	NewSessionCommandMethod  = "session.new"
 	GetSettingsCommandMethod = "nvda:settings.getSettings"
+	SetSettingsCommandMethod = "nvda:settings.setSettings"
 )
 
 type AnyCommand struct {
@@ -43,4 +44,19 @@ type VendorSettingsGetSettingsParameter struct {
 
 type VendorSettingsGetSettingsParameters struct {
 	Settings []VendorSettingsGetSettingsParameter `json:"settings"`
+}
+
+type SetSettingsCommand struct {
+	ID     string                              `json:"id"`
+	Method string                              `json:"method"`
+	Params VendorSettingsSetSettingsParameters `json:"params"`
+}
+
+type VendorSettingsSetSettingsParameter struct {
+	Name  string      `json:"name"`
+	Value interface{} `json:"value"`
+}
+
+type VendorSettingsSetSettingsParameters struct {
+	Settings []VendorSettingsSetSettingsParameter `json:"settings"`
 }

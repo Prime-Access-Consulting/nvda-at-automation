@@ -2,6 +2,7 @@ package client
 
 import (
 	"Server/command"
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -14,6 +15,8 @@ import (
 )
 
 type Settings map[string]interface{}
+
+type setSettingsPayload map[string]interface{}
 
 type NVDA struct {
 	host         string
@@ -103,6 +106,23 @@ func (c *NVDA) GetSettings(requestedSettings []string) (*Settings, error) {
 	}
 
 	return settings, nil
+}
+
+func (c *NVDA) SetSettings(settings []command.VendorSettingsSetSettingsParameter) error {
+	p := make(setSettingsPayload)
+	for _, s := range settings {
+		p[s.Name] = s.Value
+	}
+
+	payload, err := json.Marshal(p)
+
+	if err != nil {
+		return err
+	}
+
+	_, err = c.http.Post(fmt.Sprintf("%s/%s", c.host, "settings"), "application/json", bytes.NewReader(payload))
+
+	return err
 }
 
 func semverMatches(provided string, requested string) bool {
