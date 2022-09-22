@@ -2,6 +2,7 @@ import platform
 from http.server import BaseHTTPRequestHandler
 from http import HTTPStatus
 import json
+from urllib.parse import urlsplit, parse_qs
 
 import versionInfo
 
@@ -38,7 +39,13 @@ class RequestHandler(BaseHTTPRequestHandler):
 		if not self.path or self.path == '/info':
 			self._set_headers('text/plain')
 			self.wfile.write(_info)
-			return
+		elif self.path.startswith('/settings?'):
+			self._set_headers('text/plain')
+			query = urlsplit(self.path).query
+			query_parts = parse_qs(query)
+			settings = query_parts['q'][0].split(',') if 'q' in query_parts and len(query_parts['q']) == 1 else []
+			self.wfile.write(json.dumps(RequestHandler._get_settings(settings)).encode('utf-8'))
+
 
 	def do_POST(self):
 		self._set_headers('text/plain', HTTPStatus.NOT_FOUND)
@@ -50,3 +57,31 @@ class RequestHandler(BaseHTTPRequestHandler):
 		self.send_header('Access-Control-Allow-Methods', 'GET, POST')
 		self.send_header('Access-Control-Allow-Headers', 'content-type')
 		self.end_headers()
+
+	@staticmethod
+	def _get_settings(names):
+		import config
+
+		data = RequestHandler._dot_join_settings({}, config.conf.dict(), None)
+
+		if not names:
+			return data
+
+		return {k: v for k, v in data.items() if k in names}
+
+	@staticmethod
+	def _dot_join_settings(output, settings_dict, parent):
+		for k, v in settings_dict.items():
+			if type(v) is dict:
+				output = RequestHandler._dot_join_settings(
+					output,
+					v,
+					'.'.join([x for x in [parent, k] if x is not None])
+				)
+			else:
+				key = k
+				if parent is not None:
+					key = '.'.join([parent, k])
+				output[key] = v
+
+		return output
