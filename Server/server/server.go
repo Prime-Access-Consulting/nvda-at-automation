@@ -2,6 +2,9 @@ package server
 
 import (
 	"Server/client"
+	"Server/command"
+	"Server/response"
+	"encoding/json"
 	"github.com/gorilla/websocket"
 	"log"
 	"net/http"
@@ -51,9 +54,9 @@ func (s *Server) serve(w http.ResponseWriter, r *http.Request) {
 
 		log.Printf("recv: %s", message)
 
-		response := handleMessage(message)
+		res := handleMessage(message)
 
-		err = c.WriteMessage(websocket.TextMessage, response)
+		err = c.WriteMessage(websocket.TextMessage, res)
 		if err != nil {
 			log.Println("send:", err)
 		}
@@ -61,7 +64,25 @@ func (s *Server) serve(w http.ResponseWriter, r *http.Request) {
 }
 
 func handleMessage(message []byte) []byte {
-	return message
+	var c = command.AnyCommand{}
+	err := json.Unmarshal(message, &c)
+
+	if err != nil {
+		log.Println(err)
+		// Unable to parse this as a command
+		return handleUnknownCommand(nil)
+	}
+
+	return handleAnyCommand(c, message)
+}
+
+func handleAnyCommand(command command.AnyCommand, message []byte) []byte {
+	log.Printf("Received command %s\n", command.Method)
+	return response.ErrorResponseJSON("not yet implemented", string(message), nil)
+}
+
+func handleUnknownCommand(ID *string) []byte {
+	return response.ErrorResponseJSON("unknown command", "", ID)
 }
 
 func (s *Server) startWebsocketServer(host string) {
