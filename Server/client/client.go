@@ -8,8 +8,12 @@ import (
 	"io/ioutil"
 	"log"
 	"net/http"
+	"net/url"
+	"strings"
 	"time"
 )
+
+type Settings map[string]interface{}
 
 type NVDA struct {
 	host         string
@@ -69,6 +73,36 @@ func (c *NVDA) getInfo() (*Capabilities, error) {
 	}
 
 	return capabilities, nil
+}
+
+func (c *NVDA) GetSettings(requestedSettings []string) (*Settings, error) {
+	qs := strings.Join(requestedSettings, ",")
+	res, err := c.http.Get(fmt.Sprintf("%s/%s?q=%s", c.host, "settings", url.QueryEscape(qs)))
+
+	if err != nil {
+		return nil, err
+	}
+
+	defer func(Body io.ReadCloser) {
+		err := Body.Close()
+		if err != nil {
+			log.Fatal(err)
+		}
+	}(res.Body)
+
+	body, err := ioutil.ReadAll(res.Body)
+
+	if err != nil {
+		return nil, err
+	}
+
+	settings := new(Settings)
+
+	if err := json.Unmarshal(body, settings); err != nil {
+		return nil, err
+	}
+
+	return settings, nil
 }
 
 func semverMatches(provided string, requested string) bool {

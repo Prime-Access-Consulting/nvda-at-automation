@@ -24,6 +24,18 @@ type NewSessionCapabilities struct {
 	PlatformName string `json:"platformName"`
 }
 
+type GetSettingsResponse struct {
+	ID       string            `json:"id"`
+	Settings RetrievedSettings `json:"settings"`
+}
+
+type RetrievedSettings []RetrievedSetting
+
+type RetrievedSetting struct {
+	Name  string      `json:"name"`
+	Value interface{} `json:"value"`
+}
+
 func ErrorResponseJSON(error string, message string, id *string) []byte {
 	c := ErrorResponse{
 		ID:      id,

@@ -105,11 +105,69 @@ func (s *Server) handleNewSessionCommand(message []byte) []byte {
 	return response.NewSessionResponseJSON(info, *s.sessionID)
 }
 
+func getRequestedSettings(command command.GetSettingsCommand) []string {
+	var settings []string
+
+	for _, r := range command.Params.Settings {
+		settings = append(settings, r.Name)
+	}
+
+	return settings
+}
+
+func mapSettingsToRetrievedSettings(settings *client.Settings) response.RetrievedSettings {
+	s := response.RetrievedSettings{}
+
+	for key, value := range *settings {
+		s = append(s, response.RetrievedSetting{Name: key, Value: value})
+	}
+
+	return s
+}
+
+func (s *Server) handleGetSettingsCommand(message []byte) []byte {
+	c := command.GetSettingsCommand{}
+	err := json.Unmarshal(message, &c)
+
+	if err != nil {
+		return handleUnknownCommand(nil)
+	}
+
+	if s.client == nil {
+		// no session available
+		return handleUnknownCommand(&c.ID)
+	}
+
+	res := response.GetSettingsResponse{ID: c.ID}
+
+	requestedSettings := getRequestedSettings(c)
+
+	settings, err := s.client.GetSettings(requestedSettings)
+
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	res.Settings = mapSettingsToRetrievedSettings(settings)
+
+	r, err := json.Marshal(res)
+
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	return r
+}
+
 func (s *Server) handleAnyCommand(c command.AnyCommand, message []byte) []byte {
 	log.Printf("Received command %s\n", c.Method)
 
 	if c.Method == command.NewSessionCommandMethod {
 		return s.handleNewSessionCommand(message)
+	}
+
+	if c.Method == command.GetSettingsCommandMethod {
+		return s.handleGetSettingsCommand(message)
 	}
 
 	return handleUnknownCommand(&c.ID)

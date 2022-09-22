@@ -1,6 +1,9 @@
 package command
 
-const NewSessionCommandMethod = "session.new"
+const (
+	NewSessionCommandMethod  = "session.new"
+	GetSettingsCommandMethod = "nvda:settings.getSettings"
+)
 
 type AnyCommand struct {
 	ID     string      `json:"id"`
@@ -26,4 +29,18 @@ type NewSessionCommandCapabilitiesRequest struct {
 
 type NewSessionCommandCapabilitiesRequestParameters struct {
 	AlwaysMatch *NewSessionCommandCapabilitiesRequest `json:"alwaysMatch"`
+}
+
+type GetSettingsCommand struct {
+	ID     string                              `json:"id"`
+	Method string                              `json:"method"`
+	Params VendorSettingsGetSettingsParameters `json:"params"`
+}
+
+type VendorSettingsGetSettingsParameter struct {
+	Name string `json:"name"`
+}
+
+type VendorSettingsGetSettingsParameters struct {
+	Settings []VendorSettingsGetSettingsParameter `json:"settings"`
 }
