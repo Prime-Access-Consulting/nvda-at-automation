@@ -4,6 +4,7 @@ import (
 	"Server/client"
 	"Server/command"
 	"Server/response"
+	"Server/session"
 	"encoding/json"
 	"github.com/gorilla/websocket"
 	"log"
@@ -54,7 +55,7 @@ func (s *Server) serve(w http.ResponseWriter, r *http.Request) {
 
 		log.Printf("recv: %s", message)
 
-		res := handleMessage(message)
+		res := s.handleMessage(message)
 
 		err = c.WriteMessage(websocket.TextMessage, res)
 		if err != nil {
@@ -63,7 +64,7 @@ func (s *Server) serve(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func handleMessage(message []byte) []byte {
+func (s *Server) handleMessage(message []byte) []byte {
 	var c = command.AnyCommand{}
 	err := json.Unmarshal(message, &c)
 
@@ -73,12 +74,41 @@ func handleMessage(message []byte) []byte {
 		return handleUnknownCommand(nil)
 	}
 
-	return handleAnyCommand(c, message)
+	return s.handleAnyCommand(c, message)
 }
 
-func handleAnyCommand(command command.AnyCommand, message []byte) []byte {
-	log.Printf("Received command %s\n", command.Method)
-	return response.ErrorResponseJSON("not yet implemented", string(message), nil)
+func (s *Server) handleNewSessionCommand(message []byte) []byte {
+	var c = command.NewSessionCommand{}
+	err := json.Unmarshal(message, &c)
+
+	if err != nil {
+		return handleUnknownCommand(nil)
+	}
+
+	var e = func(message string) []byte {
+		return response.ErrorResponseJSON("session not created", message, &c.ID)
+	}
+
+	if s.sessionID != nil {
+		return e("session already exists")
+	}
+
+	s.sessionID = session.NewSessionID()
+	info := s.client.Capabilities
+
+	log.Printf("started new session with %s %s on %s", info.Name, info.Version, info.Platform)
+
+	return response.NewSessionResponseJSON(info, *s.sessionID)
+}
+
+func (s *Server) handleAnyCommand(c command.AnyCommand, message []byte) []byte {
+	log.Printf("Received command %s\n", c.Method)
+
+	if c.Method == command.NewSessionCommandMethod {
+		return s.handleNewSessionCommand(message)
+	}
+
+	return handleUnknownCommand(&c.ID)
 }
 
 func handleUnknownCommand(ID *string) []byte {
