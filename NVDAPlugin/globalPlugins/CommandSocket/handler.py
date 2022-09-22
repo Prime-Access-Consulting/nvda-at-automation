@@ -48,8 +48,16 @@ class RequestHandler(BaseHTTPRequestHandler):
 
 
 	def do_POST(self):
-		self._set_headers('text/plain', HTTPStatus.NOT_FOUND)
-		return
+		if not self.path or self.path != '/settings':
+			self._set_headers('text/plain', HTTPStatus.NOT_FOUND)
+			return
+
+		length = int(self.headers.get('content-length'))
+		payload = json.loads(self.rfile.read(length))
+
+		RequestHandler._handle_set_settings_command(payload)
+		self._set_headers()
+		self.wfile.write(json.dumps({}).encode('utf-8'))
 
 	def do_OPTIONS(self):
 		self.send_response(HTTPStatus.NO_CONTENT.value)
@@ -57,6 +65,47 @@ class RequestHandler(BaseHTTPRequestHandler):
 		self.send_header('Access-Control-Allow-Methods', 'GET, POST')
 		self.send_header('Access-Control-Allow-Headers', 'content-type')
 		self.end_headers()
+
+	@staticmethod
+	def _handle_set_settings_command(settings):
+		import config
+		settings_dict = tuple((k, k.split('.'), v) for k, v in settings.items())
+		RequestHandler._parse_set_settings_command_data(config.conf.dict(), settings_dict)
+
+	@staticmethod
+	def _parse_set_settings_command_data(conf_dict, data):
+		import config
+		for (key, key_parts, set_value) in data:
+			if not key_parts:
+				continue
+			(root_key, value) = RequestHandler._set_setting(key_parts, set_value, conf_dict)
+			try:
+				config.conf[root_key] = value
+			except ValueError as error:
+				print(f'Error setting {key} to {value}: {error}')
+
+	@staticmethod
+	def _set_setting(keys, value, setting_part, root_key=None):
+		if root_key is None:
+			root_key = keys.pop(0)
+
+			if root_key not in setting_part:
+				return setting_part
+
+			return root_key, RequestHandler._set_setting(keys, value, setting_part[root_key], root_key)
+
+		key = keys.pop(0)
+
+		if key not in setting_part:
+			return setting_part
+
+		# leaf key
+		if not keys:
+			setting_part[key] = value
+			return setting_part
+
+		setting_part[key] = RequestHandler._set_setting(keys, value, setting_part[key], root_key)
+		return setting_part
 
 	@staticmethod
 	def _get_settings(names):
