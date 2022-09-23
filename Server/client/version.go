@@ -41,33 +41,35 @@ func asInts(parts []string) []int {
 	return i
 }
 
-func matchParts(compare string, providedParts []int, requestedParts []int) bool {
+func matchParts(compare string, provided []int, requested []int) bool {
 	if compare == Equals {
-		return matchEqual(providedParts, requestedParts)
+		return match(provided, requested, matchEqual)
 	}
 
 	if compare == GreaterThan {
-		return matchGreaterThan(providedParts, requestedParts)
+		return match(provided, requested, matchGreaterThan)
 	}
 
 	if compare == LesserThan {
-		return matchLesserThan(providedParts, requestedParts)
+		return match(provided, requested, matchLesserThan)
 	}
 
 	if compare == GreaterThanOrEquals {
-		return matchGreaterThan(providedParts, requestedParts) || matchEqual(providedParts, requestedParts)
+		return match(provided, requested, matchGreaterThan) || match(provided, requested, matchEqual)
 	}
 
 	if compare == LesserThanOrEquals {
-		return matchLesserThan(providedParts, requestedParts) || matchEqual(providedParts, requestedParts)
+		return match(provided, requested, matchLesserThan) || match(provided, requested, matchEqual)
 	}
 
 	return false
 }
 
-func matchEqual(provided []int, requested []int) bool {
+type matcher func(int, int) bool
+
+func match(provided []int, requested []int, f matcher) bool {
 	for index, part := range requested {
-		if provided[index] != part {
+		if !f(provided[index], part) {
 			return false
 		}
 	}
@@ -75,22 +77,14 @@ func matchEqual(provided []int, requested []int) bool {
 	return true
 }
 
-func matchGreaterThan(provided []int, requested []int) bool {
-	for index, part := range requested {
-		if provided[index] <= part {
-			return false
-		}
-	}
-
-	return true
+func matchEqual(a int, b int) bool {
+	return a == b
 }
 
-func matchLesserThan(provided []int, requested []int) bool {
-	for index, part := range requested {
-		if provided[index] >= part {
-			return false
-		}
-	}
+func matchGreaterThan(a int, b int) bool {
+	return a > b
+}
 
-	return true
+func matchLesserThan(a int, b int) bool {
+	return a < b
 }
