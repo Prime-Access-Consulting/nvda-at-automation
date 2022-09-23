@@ -71,6 +71,14 @@ func (c *NVDA) getInfo() (*Capabilities, error) {
 	return capabilities, nil
 }
 
+func semverMatches(provided string, requested string) bool {
+	if requested == provided {
+		return true
+	}
+
+	return VersionRequestMatches(provided, requested)
+}
+
 func (c *NVDA) MatchesCapabilities(capabilities *command.NewSessionCommandCapabilitiesRequest) bool {
 	if capabilities == nil {
 		return true
@@ -88,7 +96,7 @@ func (c *NVDA) MatchesCapabilities(capabilities *command.NewSessionCommandCapabi
 
 	if capabilities.AtVersion != nil {
 		minimum += 1
-		if c.Capabilities.Version == *capabilities.AtVersion {
+		if semverMatches(c.Capabilities.Version, *capabilities.AtVersion) {
 			score += 1
 		}
 	}
