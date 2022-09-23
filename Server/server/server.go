@@ -125,24 +125,10 @@ func mapSettingsToRetrievedSettings(settings *client.Settings) response.Retrieve
 	return s
 }
 
-func (s *Server) handleGetSettingsCommand(message []byte) []byte {
-	c := command.GetSettingsCommand{}
-	err := json.Unmarshal(message, &c)
+func (s *Server) getSettings(ID *string, requested []string) []byte {
+	res := response.GetSettingsResponse{ID: *ID}
 
-	if err != nil {
-		return handleUnknownCommand(nil)
-	}
-
-	if s.client == nil {
-		// no session available
-		return handleUnknownCommand(&c.ID)
-	}
-
-	res := response.GetSettingsResponse{ID: c.ID}
-
-	requestedSettings := getRequestedSettings(c)
-
-	settings, err := s.client.GetSettings(requestedSettings)
+	settings, err := s.client.GetSettings(requested)
 
 	if err != nil {
 		log.Fatal(err)
@@ -157,6 +143,44 @@ func (s *Server) handleGetSettingsCommand(message []byte) []byte {
 	}
 
 	return r
+}
+
+func (s *Server) handleGetSupportedSettingsCommand(message []byte) []byte {
+	c := command.GetSupportedSettingsCommand{}
+	err := json.Unmarshal(message, &c)
+
+	if err != nil {
+		return handleUnknownCommand(nil)
+	}
+
+	if s.client == nil {
+		// no session available
+		return handleUnknownCommand(&c.ID)
+	}
+
+	return s.getSettings(&c.ID, []string{})
+}
+
+func (s *Server) handleGetSettingsCommand(message []byte) []byte {
+	c := command.GetSettingsCommand{}
+	err := json.Unmarshal(message, &c)
+
+	if err != nil {
+		return handleUnknownCommand(nil)
+	}
+
+	if s.client == nil {
+		// no session available
+		return handleUnknownCommand(&c.ID)
+	}
+
+	if len(c.Params.Settings) == 0 {
+		return response.ErrorResponseJSON("invalid argument", "No settings were requested", &c.ID)
+	}
+
+	requestedSettings := getRequestedSettings(c)
+
+	return s.getSettings(&c.ID, requestedSettings)
 }
 
 func (s *Server) handleSetSettingsCommand(message []byte) []byte {
@@ -198,6 +222,10 @@ func (s *Server) handleAnyCommand(c command.AnyCommand, message []byte) []byte {
 
 	if c.Method == command.GetSettingsCommandMethod {
 		return s.handleGetSettingsCommand(message)
+	}
+
+	if c.Method == command.GetSupportedSettingsCommandMethod {
+		return s.handleGetSupportedSettingsCommand(message)
 	}
 
 	if c.Method == command.SetSettingsCommandMethod {
