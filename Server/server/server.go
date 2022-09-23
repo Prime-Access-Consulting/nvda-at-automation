@@ -148,7 +148,7 @@ func (s *Server) handleGetSettingsCommand(message []byte) []byte {
 		log.Fatal(err)
 	}
 
-	res.Settings = mapSettingsToRetrievedSettings(settings)
+	res.Result = mapSettingsToRetrievedSettings(settings)
 
 	r, err := json.Marshal(res)
 
