@@ -24,67 +24,35 @@ func VersionRequestMatches(provided string, requested string) bool {
 	providedParts := strings.Split(provided, ".")
 	requestedParts := r.FindStringSubmatch(requested)[1:]
 
-	return matchParts(requestedParts[0], asInts(providedParts), asInts(requestedParts[1:]))
+	return matchParts(requestedParts[0], providedParts[:len(requestedParts)-1], requestedParts[1:])
 }
 
-func asInts(parts []string) []int {
-	var i []int
+func matchParts(compare string, provided []string, requested []string) bool {
+	p := strings.Join(provided, "")
+	r := strings.Join(requested, "")
 
-	for _, s := range parts {
-		if len(s) == 0 {
-			continue
-		}
-		str, _ := strconv.Atoi(s)
-		i = append(i, str)
-	}
+	pInt, _ := strconv.Atoi(p)
+	rInt, _ := strconv.Atoi(r)
 
-	return i
-}
-
-func matchParts(compare string, provided []int, requested []int) bool {
 	if compare == Equals {
-		return match(provided, requested, matchEqual)
+		return pInt == rInt
 	}
 
 	if compare == GreaterThan {
-		return match(provided, requested, matchGreaterThan)
+		return pInt > rInt
 	}
 
 	if compare == LesserThan {
-		return match(provided, requested, matchLesserThan)
+		return pInt < rInt
 	}
 
 	if compare == GreaterThanOrEquals {
-		return match(provided, requested, matchGreaterThan) || match(provided, requested, matchEqual)
+		return pInt <= rInt
 	}
 
 	if compare == LesserThanOrEquals {
-		return match(provided, requested, matchLesserThan) || match(provided, requested, matchEqual)
+		return pInt >= rInt
 	}
 
 	return false
-}
-
-type matcher func(int, int) bool
-
-func match(provided []int, requested []int, f matcher) bool {
-	for index, part := range requested {
-		if !f(provided[index], part) {
-			return false
-		}
-	}
-
-	return true
-}
-
-func matchEqual(a int, b int) bool {
-	return a == b
-}
-
-func matchGreaterThan(a int, b int) bool {
-	return a > b
-}
-
-func matchLesserThan(a int, b int) bool {
-	return a < b
 }
