@@ -1,6 +1,7 @@
 package client
 
 import (
+	"Server/command"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -68,4 +69,36 @@ func (c *NVDA) getInfo() (*Capabilities, error) {
 	}
 
 	return capabilities, nil
+}
+
+func (c *NVDA) MatchesCapabilities(capabilities *command.NewSessionCommandCapabilitiesRequest) bool {
+	if capabilities == nil {
+		return true
+	}
+
+	score := 0
+	minimum := 0
+
+	if capabilities.AtName != nil {
+		minimum += 1
+		if c.Capabilities.Name == *capabilities.AtName {
+			score += 1
+		}
+	}
+
+	if capabilities.AtVersion != nil {
+		minimum += 1
+		if c.Capabilities.Version == *capabilities.AtVersion {
+			score += 1
+		}
+	}
+
+	if capabilities.PlatformName != nil {
+		minimum += 1
+		if c.Capabilities.Platform == *capabilities.PlatformName {
+			score += 1
+		}
+	}
+
+	return score == minimum
 }
