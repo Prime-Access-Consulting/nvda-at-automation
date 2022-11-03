@@ -89,6 +89,10 @@ func (s *Server) handleNewSessionCommand(message []byte) []byte {
 		return response.ErrorResponseJSON("session not created", message, &c.ID)
 	}
 
+	if !s.client.MatchesCapabilities(c.Params.Capabilities.AlwaysMatch) {
+		return e("requested capabilities could not be matched")
+	}
+
 	if s.sessionID != nil {
 		return e("session already exists")
 	}
