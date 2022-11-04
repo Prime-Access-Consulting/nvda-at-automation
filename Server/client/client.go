@@ -2,14 +2,21 @@ package client
 
 import (
 	"Server/command"
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"io"
 	"io/ioutil"
 	"log"
 	"net/http"
+	"net/url"
+	"strings"
 	"time"
 )
+
+type Settings map[string]interface{}
+
+type setSettingsPayload map[string]interface{}
 
 type NVDA struct {
 	host         string
@@ -69,6 +76,53 @@ func (c *NVDA) getInfo() (*Capabilities, error) {
 	}
 
 	return capabilities, nil
+}
+
+func (c *NVDA) GetSettings(requestedSettings []string) (*Settings, error) {
+	qs := strings.Join(requestedSettings, ",")
+	res, err := c.http.Get(fmt.Sprintf("%s/%s?q=%s", c.host, "settings", url.QueryEscape(qs)))
+
+	if err != nil {
+		return nil, err
+	}
+
+	defer func(Body io.ReadCloser) {
+		err := Body.Close()
+		if err != nil {
+			log.Fatal(err)
+		}
+	}(res.Body)
+
+	body, err := ioutil.ReadAll(res.Body)
+
+	if err != nil {
+		return nil, err
+	}
+
+	settings := new(Settings)
+
+	if err := json.Unmarshal(body, settings); err != nil {
+		return nil, err
+	}
+
+	return settings, nil
+}
+
+func (c *NVDA) SetSettings(settings []command.VendorSettingsSetSettingsParameter) error {
+	p := make(setSettingsPayload)
+	for _, s := range settings {
+		p[s.Name] = s.Value
+	}
+
+	payload, err := json.Marshal(p)
+
+	if err != nil {
+		return err
+	}
+
+	_, err = c.http.Post(fmt.Sprintf("%s/%s", c.host, "settings"), "application/json", bytes.NewReader(payload))
+
+	return err
 }
 
 func semverMatches(provided string, requested string) bool {

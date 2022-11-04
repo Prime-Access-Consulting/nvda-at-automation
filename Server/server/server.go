@@ -105,11 +105,131 @@ func (s *Server) handleNewSessionCommand(message []byte) []byte {
 	return response.NewSessionResponseJSON(info, *s.sessionID)
 }
 
+func getRequestedSettings(command command.GetSettingsCommand) []string {
+	var settings []string
+
+	for _, r := range command.Params.Settings {
+		settings = append(settings, r.Name)
+	}
+
+	return settings
+}
+
+func mapSettingsToRetrievedSettings(settings *client.Settings) response.RetrievedSettings {
+	s := response.RetrievedSettings{}
+
+	for key, value := range *settings {
+		s = append(s, response.RetrievedSetting{Name: key, Value: value})
+	}
+
+	return s
+}
+
+func (s *Server) getSettings(ID *string, requested []string) []byte {
+	res := response.GetSettingsResponse{ID: *ID}
+
+	settings, err := s.client.GetSettings(requested)
+
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	res.Result = mapSettingsToRetrievedSettings(settings)
+
+	r, err := json.Marshal(res)
+
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	return r
+}
+
+func (s *Server) handleGetSupportedSettingsCommand(message []byte) []byte {
+	c := command.GetSupportedSettingsCommand{}
+	err := json.Unmarshal(message, &c)
+
+	if err != nil {
+		return handleUnknownCommand(nil)
+	}
+
+	if s.client == nil {
+		// no session available
+		return handleUnknownCommand(&c.ID)
+	}
+
+	return s.getSettings(&c.ID, []string{})
+}
+
+func (s *Server) handleGetSettingsCommand(message []byte) []byte {
+	c := command.GetSettingsCommand{}
+	err := json.Unmarshal(message, &c)
+
+	if err != nil {
+		return handleUnknownCommand(nil)
+	}
+
+	if s.client == nil {
+		// no session available
+		return handleUnknownCommand(&c.ID)
+	}
+
+	if len(c.Params.Settings) == 0 {
+		return response.ErrorResponseJSON("invalid argument", "No settings were requested", &c.ID)
+	}
+
+	requestedSettings := getRequestedSettings(c)
+
+	return s.getSettings(&c.ID, requestedSettings)
+}
+
+func (s *Server) handleSetSettingsCommand(message []byte) []byte {
+	c := command.SetSettingsCommand{}
+	err := json.Unmarshal(message, &c)
+
+	if err != nil {
+		return handleUnknownCommand(nil)
+	}
+
+	if s.client == nil {
+		// no session available
+		return handleUnknownCommand(&c.ID)
+	}
+
+	res := response.SetSettingsResponse{ID: c.ID}
+
+	err = s.client.SetSettings(c.Params.Settings)
+
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	r, err := json.Marshal(res)
+
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	return r
+}
+
 func (s *Server) handleAnyCommand(c command.AnyCommand, message []byte) []byte {
 	log.Printf("Received command %s\n", c.Method)
 
 	if c.Method == command.NewSessionCommandMethod {
 		return s.handleNewSessionCommand(message)
+	}
+
+	if c.Method == command.GetSettingsCommandMethod {
+		return s.handleGetSettingsCommand(message)
+	}
+
+	if c.Method == command.GetSupportedSettingsCommandMethod {
+		return s.handleGetSupportedSettingsCommand(message)
+	}
+
+	if c.Method == command.SetSettingsCommandMethod {
+		return s.handleSetSettingsCommand(message)
 	}
 
 	return handleUnknownCommand(&c.ID)

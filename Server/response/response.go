@@ -14,6 +14,11 @@ type ErrorResponse struct {
 }
 
 type NewSessionResponse struct {
+	ID     *string          `json:"id"`
+	Result NewSessionResult `json:"result"`
+}
+
+type NewSessionResult struct {
 	SessionID    string                 `json:"sessionId"`
 	Capabilities NewSessionCapabilities `json:"capabilities"`
 }
@@ -23,6 +28,25 @@ type NewSessionCapabilities struct {
 	ATVersion    string `json:"atVersion"`
 	PlatformName string `json:"platformName"`
 }
+
+type GetSettingsResponse struct {
+	ID     string            `json:"id"`
+	Result RetrievedSettings `json:"result"`
+}
+
+type RetrievedSettings []RetrievedSetting
+
+type RetrievedSetting struct {
+	Name  string      `json:"name"`
+	Value interface{} `json:"value"`
+}
+
+type SetSettingsResponse struct {
+	ID     string      `json:"id"`
+	Result EmptyResult `json:"result"`
+}
+
+type EmptyResult interface{}
 
 func ErrorResponseJSON(error string, message string, id *string) []byte {
 	c := ErrorResponse{
@@ -42,11 +66,13 @@ func ErrorResponseJSON(error string, message string, id *string) []byte {
 
 func NewSessionResponseJSON(info *client.Capabilities, sessionKey string) []byte {
 	r := NewSessionResponse{
-		SessionID: sessionKey,
-		Capabilities: NewSessionCapabilities{
-			ATName:       info.Name,
-			ATVersion:    info.Version,
-			PlatformName: info.Platform,
+		Result: NewSessionResult{
+			SessionID: sessionKey,
+			Capabilities: NewSessionCapabilities{
+				ATName:       info.Name,
+				ATVersion:    info.Version,
+				PlatformName: info.Platform,
+			},
 		},
 	}
 
