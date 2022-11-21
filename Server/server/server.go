@@ -3,8 +3,10 @@ package server
 import (
 	"Server/client"
 	"Server/command"
+	"Server/event"
 	"Server/response"
 	"Server/session"
+	"Server/sse"
 	"encoding/json"
 	"github.com/gorilla/websocket"
 	"log"
@@ -64,6 +66,10 @@ func (s *Server) serve(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+func (s *Server) sendMessage(message []byte) error {
+	return s.connection.WriteMessage(websocket.TextMessage, message)
+}
+
 func (s *Server) handleMessage(message []byte) []byte {
 	var c = command.AnyCommand{}
 	err := json.Unmarshal(message, &c)
@@ -101,6 +107,21 @@ func (s *Server) handleNewSessionCommand(message []byte) []byte {
 	info := s.client.Capabilities
 
 	log.Printf("started new session with %s %s on %s", info.Name, info.Version, info.Platform)
+
+	captureOutput := func() {
+		parser := sse.NewParser(func(sseEvent sse.Event) {
+			message = event.InteractionCapturedOutputEventJSON(s.sessionID, sseEvent.Data)
+			err := s.sendMessage(message)
+			if err != nil {
+				return
+			}
+			s.client.LastEventID = *sseEvent.ID
+		})
+
+		s.client.RegisterOnLineCallback(parser.Process)
+	}
+
+	go captureOutput()
 
 	return response.NewSessionResponseJSON(info, *s.sessionID)
 }
