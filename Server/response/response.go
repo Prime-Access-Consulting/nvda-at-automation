@@ -46,6 +46,11 @@ type SetSettingsResponse struct {
 	Result EmptyResult `json:"result"`
 }
 
+type PressKeysResponse struct {
+	ID     string      `json:"id"`
+	Result EmptyResult `json:"result"`
+}
+
 type EmptyResult interface{}
 
 func ErrorResponseJSON(error string, message string, id *string) []byte {
