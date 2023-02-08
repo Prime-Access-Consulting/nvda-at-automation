@@ -3,6 +3,7 @@ from http.server import BaseHTTPRequestHandler
 from http import HTTPStatus
 import json
 from urllib.parse import urlsplit, parse_qs
+from .settings_serializer import NVDASettingsSerializer
 
 import versionInfo
 
@@ -43,9 +44,9 @@ class RequestHandler(BaseHTTPRequestHandler):
 			self._set_headers('text/plain')
 			query = urlsplit(self.path).query
 			query_parts = parse_qs(query)
-			settings = query_parts['q'][0].split(',') if 'q' in query_parts and len(query_parts['q']) == 1 else []
-			self.wfile.write(json.dumps(RequestHandler._get_settings(settings)).encode('utf-8'))
-
+			requested_settings = query_parts['q'][0].split(',') if 'q' in query_parts and len(query_parts['q']) == 1 else []
+			json_settings = NVDASettingsSerializer().encode(RequestHandler._get_settings(requested_settings))
+			self.wfile.write(json_settings.encode('utf-8'))
 
 	def do_POST(self):
 		if not self.path or self.path != '/settings':
