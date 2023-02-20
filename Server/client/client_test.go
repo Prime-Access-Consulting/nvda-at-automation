@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/stretchr/testify/assert"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -188,4 +189,60 @@ func TestGetSettingsProvidesSettings(t *testing.T) {
 	response := runGetSettingsTest(t, []string{}, requestAssertions, &settings)
 
 	assert.EqualValues(t, settings, response)
+}
+
+func setSettingsHandlerFunc(t *testing.T, ra requestAssertions) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		assert.Equal(t, http.MethodPost, r.Method, "client should issue a POST request")
+		assert.Equal(t, r.URL.String(), "/settings", "client should call the /settings endpoint")
+
+		ra(t, r)
+
+		_, err := w.Write([]byte{})
+
+		if err != nil {
+			panic(err)
+		}
+	}
+}
+
+func runSetSettingsTest(t *testing.T, settings []command.VendorSettingsSetSettingsParameter, r requestAssertions) {
+	mux := http.NewServeMux()
+	mux.HandleFunc("/info", getInfoHandlerFunc(t))
+	mux.HandleFunc("/settings", setSettingsHandlerFunc(t, r))
+
+	ts := httptest.NewServer(mux)
+	defer ts.Close()
+
+	nvda, err := New(ts.URL)
+
+	assert.Nil(t, err)
+
+	err = nvda.SetSettings(settings)
+	assert.Nil(t, err)
+}
+
+func TestSetSettingsCallsPluginEndpoint(t *testing.T) {
+	runSetSettingsTest(t, []command.VendorSettingsSetSettingsParameter{}, func(t *testing.T, r *http.Request) {})
+}
+
+func TestSetSettingsPostsSettingsPayload(t *testing.T) {
+	settingFoo := command.VendorSettingsSetSettingsParameter{
+		Name:  "foo",
+		Value: "some-foo-value",
+	}
+
+	settingBar := command.VendorSettingsSetSettingsParameter{
+		Name:  "bar",
+		Value: "some-bar-value",
+	}
+
+	settings := []command.VendorSettingsSetSettingsParameter{settingFoo, settingBar}
+	runSetSettingsTest(t, settings, func(t *testing.T, r *http.Request) {
+		body, err := io.ReadAll(r.Body)
+		assert.Nil(t, err)
+
+		assert.Contains(t, string(body), "some-foo-value")
+		assert.Contains(t, string(body), "some-bar-value")
+	})
 }
