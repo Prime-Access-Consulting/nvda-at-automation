@@ -1,6 +1,7 @@
 package client
 
 import (
+	"Server/command"
 	"encoding/json"
 	"fmt"
 	"github.com/stretchr/testify/assert"
@@ -93,16 +94,48 @@ func TestInvalidGetInfoResponseFails(t *testing.T) {
 	assertIsNvdaClientError(t, err, "invalid character")
 }
 
-func TestValidGetInfoResponseProvidesCapabilities(t *testing.T) {
+func getConnectedNVDA(t *testing.T) *NVDA {
 	ts := httptest.NewServer(getInfoHandlerFunc(t))
 	defer ts.Close()
 
 	nvda, err := New(ts.URL)
 
 	assert.Nil(t, err)
+
+	return nvda
+}
+
+func TestValidGetInfoResponseProvidesCapabilities(t *testing.T) {
+	nvda := getConnectedNVDA(t)
 	assert.Equal(t, validCapabilities.Name, nvda.Capabilities.Name)
 	assert.Equal(t, validCapabilities.Version, nvda.Capabilities.Version)
 	assert.Equal(t, validCapabilities.Platform, nvda.Capabilities.Platform)
+}
+
+func TestCapabilitiesMatchForAnyEmptyCapabilities(t *testing.T) {
+	nvda := getConnectedNVDA(t)
+	assert.True(t, nvda.MatchesCapabilities(nil))
+}
+
+func TestCapabilitiesMatchForAnyCapability(t *testing.T) {
+	nvda := getConnectedNVDA(t)
+
+	validName := "testNVDA"
+	invalidName := "someAT"
+	validVersion := "1.2"
+	invalidVersion := "2.5"
+	validPlatform := "windows"
+	invalidPlatform := "beOS"
+
+	assert.True(t, nvda.MatchesCapabilities(&command.NewSessionCommandCapabilitiesRequest{AtName: &validName}))
+	assert.False(t, nvda.MatchesCapabilities(&command.NewSessionCommandCapabilitiesRequest{AtName: &invalidName}))
+	assert.True(t, nvda.MatchesCapabilities(&command.NewSessionCommandCapabilitiesRequest{AtVersion: &validVersion}))
+	assert.False(t, nvda.MatchesCapabilities(&command.NewSessionCommandCapabilitiesRequest{AtVersion: &invalidVersion}))
+	assert.True(t, nvda.MatchesCapabilities(&command.NewSessionCommandCapabilitiesRequest{PlatformName: &validPlatform}))
+	assert.False(t, nvda.MatchesCapabilities(&command.NewSessionCommandCapabilitiesRequest{PlatformName: &invalidPlatform}))
+
+	assert.True(t, nvda.MatchesCapabilities(&command.NewSessionCommandCapabilitiesRequest{AtName: &validName, PlatformName: &validPlatform}))
+	assert.False(t, nvda.MatchesCapabilities(&command.NewSessionCommandCapabilitiesRequest{AtName: &invalidName, PlatformName: &validPlatform}))
 }
 
 func runGetSettingsTest(t *testing.T, requestedSettings []string, r requestAssertions, returnedSettings *Settings) Settings {
