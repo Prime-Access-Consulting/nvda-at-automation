@@ -4,7 +4,10 @@ from http import HTTPStatus
 import json
 from urllib.parse import urlsplit, parse_qs
 
+import inputCore
 import versionInfo
+
+from . import keyboard_input
 
 VERSION = "0.1"
 HOST = 'localhost'
@@ -76,11 +79,18 @@ class RequestHandler(BaseHTTPRequestHandler):
 	def _handle_press_keys_command(keys):
 		import keyboardHandler
 
-		for key in keys:
-			scan_code = key
-			is_pressed = True
-			is_extended = False
-			keyboardHandler.injectRawKeyboardInput(is_pressed, scan_code, is_extended)
+		gesture_name = None
+
+		try:
+			gesture_name = keyboard_input.create_gesture_name(keys)
+			print(f'executing gesture "{gesture_name}"')
+
+			gesture = keyboardHandler.KeyboardInputGesture.fromName(gesture_name)
+			inputCore.manager.executeGesture(gesture)
+		except KeyError as e:
+			print(f'invalid gesture "{gesture_name}')
+		except Exception as e:
+			print(f'error executing gesture {gesture_name}: {e}')
 
 	@staticmethod
 	def _handle_set_settings_command(settings):
