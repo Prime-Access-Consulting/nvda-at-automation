@@ -19,7 +19,7 @@ func loadEnv() {
 func main() {
 	loadEnv()
 
-	nvda, err := client.New(os.Getenv("NVDA_ADDON_HOST"))
+	nvda, err := client.New(os.Getenv("NVDA_ADDON_HOST"), os.Getenv("NVDA_SPEECH_PORT"))
 
 	if err != nil {
 		log.Fatal(err)

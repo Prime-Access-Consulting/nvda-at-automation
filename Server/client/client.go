@@ -2,12 +2,14 @@ package client
 
 import (
 	"Server/command"
+	"bufio"
 	"bytes"
 	"encoding/json"
 	"fmt"
 	"io"
 	"io/ioutil"
 	"log"
+	"net"
 	"net/http"
 	"net/url"
 	"strings"
@@ -20,6 +22,8 @@ type setSettingsPayload map[string]interface{}
 
 type NVDA struct {
 	host         string
+	speechPort   string
+	LastEventID  int
 	http         *http.Client
 	Capabilities *Capabilities
 }
@@ -30,9 +34,13 @@ type Capabilities struct {
 	Platform string `json:"platformName"`
 }
 
-func New(host string) (*NVDA, error) {
+type onLineCallback func(string)
+
+func New(host string, speechPort string) (*NVDA, error) {
 	nvda := &NVDA{
-		host: host,
+		host:        host,
+		speechPort:  speechPort,
+		LastEventID: 0,
 		http: &http.Client{
 			Timeout: time.Second * 5,
 		},
@@ -163,4 +171,53 @@ func (c *NVDA) MatchesCapabilities(capabilities *command.NewSessionCommandCapabi
 	}
 
 	return score == minimum
+}
+
+func (c *NVDA) RegisterOnLineCallback(callback onLineCallback) {
+	conn, err := net.Dial("tcp", fmt.Sprintf("localhost:%s", c.speechPort))
+
+	if err != nil {
+		fmt.Println("dial error:", err)
+		return
+	}
+
+	defer func(conn net.Conn) {
+		err := conn.Close()
+		if err != nil {
+
+		}
+	}(conn)
+
+	_, writeErr := conn.Write([]byte(fmt.Sprintf("Last-Event-ID:%d", c.LastEventID)))
+	if writeErr != nil {
+		fmt.Println("ERROR", writeErr)
+		return
+	}
+
+	r := bufio.NewReader(conn)
+
+	fmt.Println("Reading from event socket")
+
+	for {
+		line, err := r.ReadString('\n')
+
+		if err != nil {
+			switch err {
+			case io.EOF:
+				time.Sleep(100 * time.Millisecond)
+				continue
+			default:
+				fmt.Println("ERROR", err)
+				continue
+			}
+		}
+
+		line = strings.TrimSpace(line)
+
+		if len(line) == 0 {
+			continue
+		}
+
+		callback(line)
+	}
 }

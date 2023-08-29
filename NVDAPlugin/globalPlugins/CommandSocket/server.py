@@ -14,11 +14,11 @@ class Server:
 			thread = threading.Thread(target=self._server.serve_forever)
 			thread.daemon = True
 			thread.start()
-			print(f'ARIA-AT: starting server on port {self._server.server_port}')
+			print(f'ARIA-AT: Starting server on port {self._server.server_port}')
 			self._running = True
 			return True
 		except Exception as e:
-			print(f'ARIA-AT: unable to start server on port {self._server.server_port}: {e}')
+			print(f'ARIA-AT: Unable to start server on port {self._server.server_port}: {e}')
 			return False
 
 	def stop(self):
@@ -26,8 +26,8 @@ class Server:
 			if not self._running:
 				return False
 			self._server.shutdown()
-			print(f'ARIA-AT: stopping server on port {self._server.server_port}')
+			print(f'ARIA-AT: Stopping server on port {self._server.server_port}')
 			return False
 		except Exception as e:
-			print(f'ARIA-AT: unable to shutdown server: {e}')
+			print(f'ARIA-AT: Unable to shutdown server: {e}')
 			return True
