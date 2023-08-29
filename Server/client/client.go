@@ -51,7 +51,7 @@ func New(host string, speechPort string) (*NVDA, error) {
 	capabilities, err := nvda.getInfo()
 
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("unexpected response from NVDA: %s", err)
 	}
 
 	nvda.Capabilities = capabilities
