@@ -7,7 +7,7 @@ This implementation contains two parts: a Python addon for the NVDA screen reade
 
 ### NVDA Add-on
 
-* Move the folder `NVDAPlugin` into your NVDA installations `userConfig\addons` directory and (re)start NVDA.
+* Move the folder `NVDAPlugin` into your NVDA addons directory — `userConfig\addons` in case of a portable NVDA, `%appdata%\nvda\addons` in case of a system install — and (re)start NVDA.
 * A http server should be available at `localhost:8765`.
 
 ### Golang Server
