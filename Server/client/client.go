@@ -20,6 +20,8 @@ type Settings map[string]interface{}
 
 type setSettingsPayload map[string]interface{}
 
+type pressKeysPayload []string
+
 type NVDA struct {
 	host         string
 	speechPort   string
@@ -129,6 +131,36 @@ func (c *NVDA) SetSettings(settings []command.VendorSettingsSetSettingsParameter
 	}
 
 	_, err = c.http.Post(fmt.Sprintf("%s/%s", c.host, "settings"), "application/json", bytes.NewReader(payload))
+
+	return err
+}
+
+func isValidKey(_key string) bool {
+	return true
+}
+
+func createPressKeysPayload(keys []string) pressKeysPayload {
+	p := pressKeysPayload{}
+
+	for _, k := range keys {
+		if isValidKey(k) {
+			p = append(p, k)
+		}
+	}
+
+	return p
+}
+
+func (c *NVDA) PressKeys(keys []string) error {
+	p := createPressKeysPayload(keys)
+
+	payload, err := json.Marshal(p)
+
+	if err != nil {
+		return err
+	}
+
+	_, err = c.http.Post(fmt.Sprintf("%s/%s", c.host, "presskeys"), "application/json", bytes.NewReader(payload))
 
 	return err
 }

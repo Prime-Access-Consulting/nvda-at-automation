@@ -75,7 +75,7 @@ func (s *Server) handleMessage(message []byte) []byte {
 	err := json.Unmarshal(message, &c)
 
 	if err != nil {
-		log.Println(err)
+		log.Printf("Error unmarshaling: %s", err)
 		// Unable to parse this as a command
 		return handleUnknownCommand(nil)
 	}
@@ -234,6 +234,37 @@ func (s *Server) handleSetSettingsCommand(message []byte) []byte {
 	return r
 }
 
+func (s *Server) handlePressKeysCommand(message []byte) []byte {
+	c := command.PressKeysCommand{}
+
+	err := json.Unmarshal(message, &c)
+
+	if err != nil {
+		return handleUnknownCommand(nil)
+	}
+
+	if s.client == nil {
+		// no session available
+		return handleUnknownCommand(&c.ID)
+	}
+
+	res := response.PressKeysResponse{ID: c.ID}
+
+	err = s.client.PressKeys(c.Params.Keys)
+
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	r, err := json.Marshal(res)
+
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	return r
+}
+
 func (s *Server) handleAnyCommand(c command.AnyCommand, message []byte) []byte {
 	log.Printf("Received command %s\n", c.Method)
 
@@ -251,6 +282,10 @@ func (s *Server) handleAnyCommand(c command.AnyCommand, message []byte) []byte {
 
 	if c.Method == command.SetSettingsCommandMethod {
 		return s.handleSetSettingsCommand(message)
+	}
+
+	if c.Method == command.PressKeysCommandMethod {
+		return s.handlePressKeysCommand(message)
 	}
 
 	return handleUnknownCommand(&c.ID)

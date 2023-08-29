@@ -5,6 +5,7 @@ const (
 	GetSettingsCommandMethod          = "nvda:settings.getSettings"
 	GetSupportedSettingsCommandMethod = "nvda:settings.getSupportedSettings"
 	SetSettingsCommandMethod          = "nvda:settings.setSettings"
+	PressKeysCommandMethod            = "interaction.pressKeys"
 )
 
 type EmptyParams interface{}
@@ -68,4 +69,14 @@ type VendorSettingsSetSettingsParameter struct {
 
 type VendorSettingsSetSettingsParameters struct {
 	Settings []VendorSettingsSetSettingsParameter `json:"settings"`
+}
+
+type PressKeysCommand struct {
+	ID     string              `json:"id"`
+	Method string              `json:"method"`
+	Params PressKeysParameters `json:"params"`
+}
+
+type PressKeysParameters struct {
+	Keys []string `json:"keys"`
 }

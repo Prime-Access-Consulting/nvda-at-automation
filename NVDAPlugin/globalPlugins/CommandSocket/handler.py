@@ -5,7 +5,10 @@ import json
 from urllib.parse import urlsplit, parse_qs
 from .settings_serializer import NVDASettingsSerializer
 
+import inputCore
 import versionInfo
+
+from . import keyboard_input
 
 VERSION = "0.1"
 HOST = 'localhost'
@@ -49,14 +52,20 @@ class RequestHandler(BaseHTTPRequestHandler):
 			self.wfile.write(json_settings.encode('utf-8'))
 
 	def do_POST(self):
-		if not self.path or self.path != '/settings':
+		valid_paths = ['/settings', '/presskeys']
+
+		if not self.path or self.path not in valid_paths:
 			self._set_headers('text/plain', HTTPStatus.NOT_FOUND)
 			return
 
 		length = int(self.headers.get('content-length'))
 		payload = json.loads(self.rfile.read(length))
 
-		RequestHandler._handle_set_settings_command(payload)
+		if self.path == '/settings':
+			RequestHandler._handle_set_settings_command(payload)
+		elif self.path == '/presskeys':
+			RequestHandler._handle_press_keys_command(payload)
+
 		self._set_headers()
 		self.wfile.write(json.dumps({}).encode('utf-8'))
 
@@ -66,6 +75,23 @@ class RequestHandler(BaseHTTPRequestHandler):
 		self.send_header('Access-Control-Allow-Methods', 'GET, POST')
 		self.send_header('Access-Control-Allow-Headers', 'content-type')
 		self.end_headers()
+
+	@staticmethod
+	def _handle_press_keys_command(keys):
+		import keyboardHandler
+
+		gesture_name = None
+
+		try:
+			gesture_name = keyboard_input.create_gesture_name(keys)
+			print(f'executing gesture "{gesture_name}"')
+
+			gesture = keyboardHandler.KeyboardInputGesture.fromName(gesture_name)
+			inputCore.manager.executeGesture(gesture)
+		except KeyError as e:
+			print(f'invalid gesture "{gesture_name}')
+		except Exception as e:
+			print(f'error executing gesture {gesture_name}: {e}')
 
 	@staticmethod
 	def _handle_set_settings_command(settings):
