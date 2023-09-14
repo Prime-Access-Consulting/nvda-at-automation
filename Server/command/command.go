@@ -11,13 +11,13 @@ const (
 type EmptyParams interface{}
 
 type AnyCommand struct {
-	ID     string      `json:"id"`
+	ID     uint        `json:"id"`
 	Method string      `json:"method"`
 	Params interface{} `json:"params"`
 }
 
 type NewSessionCommand struct {
-	ID     string                  `json:"id"`
+	ID     uint                    `json:"id"`
 	Method string                  `json:"method"`
 	Params NewSessionCommandParams `json:"params"`
 }
@@ -37,7 +37,7 @@ type NewSessionCommandCapabilitiesRequestParameters struct {
 }
 
 type GetSettingsCommand struct {
-	ID     string                              `json:"id"`
+	ID     uint                                `json:"id"`
 	Method string                              `json:"method"`
 	Params VendorSettingsGetSettingsParameters `json:"params"`
 }
@@ -51,13 +51,13 @@ type VendorSettingsGetSettingsParameters struct {
 }
 
 type GetSupportedSettingsCommand struct {
-	ID     string      `json:"id"`
+	ID     uint        `json:"id"`
 	Method string      `json:"method"`
 	Params EmptyParams `json:"params"`
 }
 
 type SetSettingsCommand struct {
-	ID     string                              `json:"id"`
+	ID     uint                                `json:"id"`
 	Method string                              `json:"method"`
 	Params VendorSettingsSetSettingsParameters `json:"params"`
 }
@@ -72,7 +72,7 @@ type VendorSettingsSetSettingsParameters struct {
 }
 
 type PressKeysCommand struct {
-	ID     string              `json:"id"`
+	ID     uint                `json:"id"`
 	Method string              `json:"method"`
 	Params PressKeysParameters `json:"params"`
 }
