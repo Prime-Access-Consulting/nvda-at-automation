@@ -123,7 +123,7 @@ func (s *Server) handleNewSessionCommand(message []byte) []byte {
 
 	go captureOutput()
 
-	return response.NewSessionResponseJSON(info, *s.sessionID)
+	return response.NewSessionResponseJSON(info, *s.sessionID, &c.ID)
 }
 
 func getRequestedSettings(command command.GetSettingsCommand) []string {
@@ -146,7 +146,7 @@ func mapSettingsToRetrievedSettings(settings *client.Settings) response.Retrieve
 	return s
 }
 
-func (s *Server) getSettings(ID *string, requested []string) []byte {
+func (s *Server) getSettings(ID *uint, requested []string) []byte {
 	res := response.GetSettingsResponse{ID: *ID}
 
 	settings, err := s.client.GetSettings(requested)
@@ -291,7 +291,7 @@ func (s *Server) handleAnyCommand(c command.AnyCommand, message []byte) []byte {
 	return handleUnknownCommand(&c.ID)
 }
 
-func handleUnknownCommand(ID *string) []byte {
+func handleUnknownCommand(ID *uint) []byte {
 	return response.ErrorResponseJSON("unknown command", "", ID)
 }
 

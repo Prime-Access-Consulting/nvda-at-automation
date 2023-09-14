@@ -7,14 +7,14 @@ import (
 )
 
 type ErrorResponse struct {
-	ID         *string `json:"id"`
+	ID         *uint   `json:"id"`
 	Error      string  `json:"error"`
 	Message    string  `json:"message"`
 	Stacktrace *string `json:"stacktrace,omitempty"`
 }
 
 type NewSessionResponse struct {
-	ID     *string          `json:"id"`
+	ID     *uint            `json:"id"`
 	Result NewSessionResult `json:"result"`
 }
 
@@ -30,7 +30,7 @@ type NewSessionCapabilities struct {
 }
 
 type GetSettingsResponse struct {
-	ID     string            `json:"id"`
+	ID     uint              `json:"id"`
 	Result RetrievedSettings `json:"result"`
 }
 
@@ -42,18 +42,18 @@ type RetrievedSetting struct {
 }
 
 type SetSettingsResponse struct {
-	ID     string      `json:"id"`
+	ID     uint        `json:"id"`
 	Result EmptyResult `json:"result"`
 }
 
 type PressKeysResponse struct {
-	ID     string      `json:"id"`
+	ID     uint        `json:"id"`
 	Result EmptyResult `json:"result"`
 }
 
 type EmptyResult interface{}
 
-func ErrorResponseJSON(error string, message string, id *string) []byte {
+func ErrorResponseJSON(error string, message string, id *uint) []byte {
 	c := ErrorResponse{
 		ID:      id,
 		Error:   error,
@@ -69,8 +69,9 @@ func ErrorResponseJSON(error string, message string, id *string) []byte {
 	return response
 }
 
-func NewSessionResponseJSON(info *client.Capabilities, sessionKey string) []byte {
+func NewSessionResponseJSON(info *client.Capabilities, sessionKey string, id *uint) []byte {
 	r := NewSessionResponse{
+		ID: id,
 		Result: NewSessionResult{
 			SessionID: sessionKey,
 			Capabilities: NewSessionCapabilities{
