@@ -89,7 +89,7 @@ class RequestHandler(BaseHTTPRequestHandler):
 			gesture = keyboardHandler.KeyboardInputGesture.fromName(gesture_name)
 			inputCore.manager.executeGesture(gesture)
 		except KeyError as e:
-			print(f'invalid gesture "{gesture_name}')
+			print(f'invalid gesture "{gesture_name}": {e}')
 		except Exception as e:
 			print(f'error executing gesture {gesture_name}: {e}')
 

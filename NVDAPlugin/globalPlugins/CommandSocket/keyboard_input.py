@@ -98,13 +98,16 @@ class Keys:
 
 # END keys
 
+# Mapping from the unicode key format of webdriver to the NVDA vkCodes
+# https://github.com/nvaccess/nvda/blob/master/source/vkCodes.py
+
 modifiers = {
 	'NVDA': 'NVDA',
 	Keys.SHIFT: 'shift',
 	Keys.CONTROL: 'control',
 	Keys.ALT: 'alt',
 	Keys.INSERT: 'insert',
-	Keys.META: 'meta'
+	Keys.META: 'alt'
 }
 
 non_modifiers = {
@@ -114,7 +117,7 @@ non_modifiers = {
 	Keys.BACKSPACE: 'backspace',
 	Keys.TAB: 'tab',
 	Keys.CLEAR: 'clear',
-	Keys.RETURN: 'return',
+	Keys.RETURN: 'enter',
 	Keys.ENTER: 'enter',
 	Keys.SHIFT: 'shift',
 	Keys.CONTROL: 'control',
@@ -122,33 +125,34 @@ non_modifiers = {
 	Keys.PAUSE: 'pause',
 	Keys.ESCAPE: 'escape',
 	Keys.SPACE: 'space',
-	Keys.PAGE_UP: 'page_up',
-	Keys.PAGE_DOWN: 'page_down',
+	Keys.PAGE_UP: 'pageUp',
+	Keys.PAGE_DOWN: 'pageDown',
 	Keys.END: 'end',
 	Keys.HOME: 'home',
-	Keys.LEFT: 'left',
-	Keys.UP: 'up',
-	Keys.RIGHT: 'right',
-	Keys.DOWN: 'down',
+	Keys.LEFT: 'leftArrow',
+	Keys.UP: 'upArrow',
+	Keys.RIGHT: 'rightArrow',
+	Keys.DOWN: 'downArrow',
 	Keys.INSERT: 'insert',
 	Keys.DELETE: 'delete',
-	Keys.SEMICOLON: 'semicolon',
-	Keys.EQUALS: 'equals',
-	Keys.NUMPAD1: 'numpad1',
-	Keys.NUMPAD2: 'numpad2',
-	Keys.NUMPAD3: 'numpad3',
-	Keys.NUMPAD4: 'numpad4',
-	Keys.NUMPAD5: 'numpad5',
-	Keys.NUMPAD6: 'numpad6',
-	Keys.NUMPAD7: 'numpad7',
-	Keys.NUMPAD8: 'numpad8',
-	Keys.NUMPAD9: 'numpad9',
-	Keys.MULTIPLY: 'multiply',
-	Keys.ADD: 'add',
-	Keys.SEPARATOR: 'separator',
-	Keys.SUBTRACT: 'subtract',
-	Keys.DECIMAL: 'decimal',
-	Keys.DIVIDE: 'divide',
+	Keys.SEMICOLON: ';',
+	Keys.EQUALS: '=',
+	Keys.NUMPAD0: 'numLockNumpad0',
+	Keys.NUMPAD1: 'numLockNumpad1',
+	Keys.NUMPAD2: 'numLockNumpad2',
+	Keys.NUMPAD3: 'numLockNumpad3',
+	Keys.NUMPAD4: 'numLockNumpad4',
+	Keys.NUMPAD5: 'numLockNumpad5',
+	Keys.NUMPAD6: 'numLockNumpad6',
+	Keys.NUMPAD7: 'numLockNumpad7',
+	Keys.NUMPAD8: 'numLockNumpad8',
+	Keys.NUMPAD9: 'numLockNumpad9',
+	Keys.MULTIPLY: 'numpadMultiply',
+	Keys.ADD: 'numpadPlus',
+	Keys.SEPARATOR: 'numpadSeparator',
+	Keys.SUBTRACT: 'numpadMinus',
+	Keys.DECIMAL: 'numpadDecimal',
+	Keys.DIVIDE: 'numpadDivide',
 	Keys.F1: 'f1',
 	Keys.F2: 'f2',
 	Keys.F3: 'f3',
@@ -161,10 +165,28 @@ non_modifiers = {
 	Keys.F10: 'f10',
 	Keys.F11: 'f11',
 	Keys.F12: 'f12',
-	Keys.META: 'meta',
+	Keys.META: 'alt',
 	Keys.COMMAND: 'command',
 	Keys.ZENKAKU_HANKAKU: 'zenkaku_hankaku',
 }
+
+
+# Some code that will try to make a gesture from every entry in the special Keys class
+# helps for making sure the gesture mappings are in the format NVDA can parse
+
+# import keyboardHandler
+# for key in vars(Keys):
+# 	try:
+# 		key = vars(Keys)[key]
+# 		if key in modifiers.keys():
+# 			key = modifiers[key]
+# 		if key in non_modifiers.keys():
+# 			key = non_modifiers[key]
+# 		keyboardHandler.KeyboardInputGesture.fromName(key)
+# 	except KeyError as e:
+# 		print(f'Unable to create gesture for {key} {e}')
+# 	except Exception as e:
+# 		print(f'Unable to create gesture for {key} {e}')
 
 
 def is_invalid(key: str) -> bool:
