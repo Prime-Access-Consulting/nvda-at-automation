@@ -137,16 +137,16 @@ non_modifiers = {
 	Keys.DELETE: 'delete',
 	Keys.SEMICOLON: ';',
 	Keys.EQUALS: '=',
-	Keys.NUMPAD0: 'numLockNumpad0',
-	Keys.NUMPAD1: 'numLockNumpad1',
-	Keys.NUMPAD2: 'numLockNumpad2',
-	Keys.NUMPAD3: 'numLockNumpad3',
-	Keys.NUMPAD4: 'numLockNumpad4',
-	Keys.NUMPAD5: 'numLockNumpad5',
-	Keys.NUMPAD6: 'numLockNumpad6',
-	Keys.NUMPAD7: 'numLockNumpad7',
-	Keys.NUMPAD8: 'numLockNumpad8',
-	Keys.NUMPAD9: 'numLockNumpad9',
+	Keys.NUMPAD0: 'numpad0',
+	Keys.NUMPAD1: 'numpad1',
+	Keys.NUMPAD2: 'numpad2',
+	Keys.NUMPAD3: 'numpad3',
+	Keys.NUMPAD4: 'numpad4',
+	Keys.NUMPAD5: 'numpad5',
+	Keys.NUMPAD6: 'numpad6',
+	Keys.NUMPAD7: 'numpad7',
+	Keys.NUMPAD8: 'numpad8',
+	Keys.NUMPAD9: 'numpad9',
 	Keys.MULTIPLY: 'numpadMultiply',
 	Keys.ADD: 'numpadPlus',
 	Keys.SEPARATOR: 'numpadSeparator',
@@ -169,24 +169,6 @@ non_modifiers = {
 	Keys.COMMAND: 'command',
 	Keys.ZENKAKU_HANKAKU: 'zenkaku_hankaku',
 }
-
-
-# Some code that will try to make a gesture from every entry in the special Keys class
-# helps for making sure the gesture mappings are in the format NVDA can parse
-
-# import keyboardHandler
-# for key in vars(Keys):
-# 	try:
-# 		key = vars(Keys)[key]
-# 		if key in modifiers.keys():
-# 			key = modifiers[key]
-# 		if key in non_modifiers.keys():
-# 			key = non_modifiers[key]
-# 		keyboardHandler.KeyboardInputGesture.fromName(key)
-# 	except KeyError as e:
-# 		print(f'Unable to create gesture for {key} {e}')
-# 	except Exception as e:
-# 		print(f'Unable to create gesture for {key} {e}')
 
 
 def is_invalid(key: str) -> bool:
