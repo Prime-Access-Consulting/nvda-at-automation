@@ -11,9 +11,11 @@ import (
 	"github.com/gorilla/websocket"
 	"log"
 	"net/http"
+	"sync"
 )
 
 type Server struct {
+	mutex sync.Mutex
 	connection *websocket.Conn
 	sessionID  *string
 	client     *client.NVDA
@@ -59,7 +61,7 @@ func (s *Server) serve(w http.ResponseWriter, r *http.Request) {
 
 		res := s.handleMessage(message)
 
-		err = c.WriteMessage(websocket.TextMessage, res)
+		err = s.sendMessage(res)
 		if err != nil {
 			log.Println("send:", err)
 		}
@@ -67,6 +69,8 @@ func (s *Server) serve(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) sendMessage(message []byte) error {
+	s.mutex.Lock()
+	defer s.mutex.Unlock()
 	return s.connection.WriteMessage(websocket.TextMessage, message)
 }
 
