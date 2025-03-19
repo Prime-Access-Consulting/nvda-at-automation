@@ -288,8 +288,19 @@ func (s *Server) handleAnyCommand(c command.AnyCommand, message []byte) []byte {
 		return s.handleSetSettingsCommand(message)
 	}
 
-	if c.Method == command.PressKeysCommandMethod {
-		return s.handlePressKeysCommand(message)
+	if c.Method == command.UserIntentCommandMethod {
+		userIntentParse := command.UserIntentCommand{}
+		err := json.Unmarshal(message, &userIntentParse)
+		if err != nil {
+			return handleUnknownCommand(nil)
+		}
+
+		log.Printf("userIntent Name: %s\n", userIntentParse.Params.Name)
+		if userIntentParse.Params.Name == command.PressKeysCommandName {
+			return s.handlePressKeysCommand(message)
+		}
+
+		return handleUnknownCommand(&c.ID)
 	}
 
 	return handleUnknownCommand(&c.ID)
