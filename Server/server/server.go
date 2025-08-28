@@ -313,7 +313,7 @@ func handleUnknownCommand(ID *uint) []byte {
 func (s *Server) startWebsocketServer(host string) {
 	log.Printf("Starting websocket server on %s", host)
 
-	http.HandleFunc("/command", s.serve)
+	http.HandleFunc("/session", s.serve)
 	err := http.ListenAndServe(host, nil)
 
 	if err != nil {
