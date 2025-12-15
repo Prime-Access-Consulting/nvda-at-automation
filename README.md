@@ -1,4 +1,7 @@
 # NVDA AT Automation
+
+This project was initially developed by [Prime Access Consulting](https://pac.bz) prior to being contributed to the W3C to facilitate further community contributions.
+
 Implementation of the AT Automation Driver specification for the NVDA screen reader.
 
 This implementation contains two parts: a Python addon for the NVDA screen reader, and a Golang websocket command-and-control server.
